@@ -355,7 +355,7 @@ const validateOTP = async (req, res) => {
 };
 
 const sendOtpWithSms = async (req, res) => {
-  const { phoneNumber, countryCode } = req.body;
+  const { phoneNumber, countryCode , role } = req.body;
 
   // Validate the input
   if (!phoneNumber || !countryCode) {
@@ -376,6 +376,13 @@ const sendOtpWithSms = async (req, res) => {
       return res
         .status(404)
         .json({ message: "User with this phone number does not exist." });
+    }
+
+    // Check if the user's role is therapist
+    if (user.role !== role) {
+      return res
+        .status(403)
+        .json({ message: `This action is restricted to ${role} only.` });
     }
 
     // Generate the OTP
@@ -405,7 +412,7 @@ const sendOtpWithSms = async (req, res) => {
 };
 
 const sendOtpWithEmail = async (req, res) => {
-  const { email } = req.body;
+  const { email , role } = req.body;
 
   // Validate the input
   if (!email) {
@@ -424,6 +431,13 @@ const sendOtpWithEmail = async (req, res) => {
       return res
         .status(404)
         .json({ message: "User with this email does not exist." });
+    }
+
+    // Check if the user's role is therapist
+    if (user.role !== role) {
+      return res
+        .status(403)
+        .json({ message: `This action is restricted to ${role} only.` });
     }
 
     // Generate the OTP

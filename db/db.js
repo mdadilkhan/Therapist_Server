@@ -9,7 +9,7 @@ const client = new MongoClient(uri, {
 });
 
 let db;
-const collections = ['users','admin','appointments','faq' ,'groupSessions' ,'sessionNotes' , 'referrals','genricRegistration', 'selftherapy' , 'supervision','payments', 'notifications']; 
+const collections = ['users','admin','appointments','faq' ,'groupSessions' ,'sessionNotes' , 'referrals','genricRegistration', 'selftherapy' , 'supervision','payments', 'notifications','coupons']; 
 const connectToDatabase = async () => {
   try {
     await client.connect();

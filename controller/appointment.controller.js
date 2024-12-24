@@ -1383,13 +1383,17 @@ const getTherapistSlots = async (req, res) => {
       // Convert to ISO format and replace 'Z' with '+05:30'
       return dateIST.toISOString().split('.')[0] + '+05:30';
     };
-    allSlots.forEach((slot) => {
-      const slotTimeISO = formatToIST(inputDate, slot.m_schd_from);
-      console.log("kaif", slotTimeISO , currentISTTimeISO , inputDate , currentTimeUTC);
-      if (slotTimeISO < currentISTTimeISO && inputDate < currentTimeUTC) {
-        slot.m_booked_status = 2; // Mark slots in the past with status 2
-      }
-    });
+
+    //for back date
+     
+    // allSlots.forEach((slot) => {
+    //   const slotTimeISO = formatToIST(inputDate, slot.m_schd_from);
+    //   console.log("kaif", slotTimeISO , currentISTTimeISO , inputDate , currentTimeUTC);
+    //   if (slotTimeISO < currentISTTimeISO && inputDate < currentTimeUTC) {
+    //     slot.m_booked_status = 2; // Mark slots in the past with status 2
+    //   }
+    // });
+
     // Check for existing bookings on the given date
     const bookings = therapist.booking_slots
       ? therapist.booking_slots.filter(
@@ -2668,7 +2672,7 @@ const changeBookingStatus = async (req, res) => {
     const { app_id } = req.body;
 
     // Log the appointment ID for debugging
-    console.log("book status", app_id);
+    console.log("Book status", app_id);
 
     // Validate the appointment ID
     if (!app_id || !ObjectId.isValid(app_id)) {
@@ -2684,13 +2688,7 @@ const changeBookingStatus = async (req, res) => {
     const db = getDb();
     const appointmentCollection = await db.collection("appointments");
 
-    const currentDate = new Date();
-    currentDate.setUTCHours(0, 0, 0, 0); // Set time to 00:00:00 for date comparison
-
-    // Get the current time (UTC)
-    const currentTime = new Date().toTimeString().split(' ')[0]; // Get time in HH:MM:SS format
-
-    // Find the appointment and check conditions
+    // Fetch the appointment
     const appointment = await appointmentCollection.findOne({ _id: appointment_id });
 
     // Check if appointment exists
@@ -2701,31 +2699,33 @@ const changeBookingStatus = async (req, res) => {
       });
     }
 
-    // Check if the booking date is in the future
-    const bookingDate = new Date(appointment.booking_date);
-    if (bookingDate > currentDate) {
+    // Get booking date and time
+    const bookingDate = new Date(appointment.booking_date); // Ensure booking_date is in a valid date format
+    const bookingTime = appointment.booking_slots[0].m_schd_from; // Assuming m_schd_from is in HH:MM:SS format
+
+    // Combine booking date and time into a single Date object
+    const [hours, minutes, seconds] = bookingTime.split(":").map(Number);
+    bookingDate.setUTCHours(hours, minutes, seconds, 0);
+
+    // Get the current date and time
+    const currentDate = new Date();
+
+    // Compare current date and time with booking date and time
+    if (currentDate < bookingDate) {
       return res.status(400).json({
-        message: "Booking status cannot be changed before the booking date.",
+        message: `Booking status cannot be changed before the scheduled date and time. The session starts at ${appointment.booking_date} ${bookingTime}.`,
         error: true,
       });
     }
 
     // Check if the payment status is 0
-    if (appointment.payment_status === 0) {
-      return res.status(400).json({
-        message: "Booking status cannot be changed due to incomplete payment.",
-        error: true,
-      });
-    }
-
-    // Check if the current time is before the booking slot time
-    const bookingSlotTime = appointment.booking_slots[0].m_schd_from;
-    if (currentTime < bookingSlotTime) {
-      return res.status(400).json({
-        message: `Booking status cannot be changed before the scheduled time. The session starts at ${bookingSlotTime}.`,
-        error: true,
-      });
-    }
+    
+    // if (appointment.payment_status === 0) {
+    //   return res.status(400).json({
+    //     message: "Booking status cannot be changed due to incomplete payment.",
+    //     error: true,
+    //   });
+    // }
 
     // Update the booking status to 2 if the current status is 1
     const result = await appointmentCollection.updateOne(

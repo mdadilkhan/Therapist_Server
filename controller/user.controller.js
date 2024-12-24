@@ -24,7 +24,7 @@ const addUser = async (req, res) => {
     const usersCollection = db.collection("users");
 
     // Destructure the request body
-    const { name, gender, emailId, phoneNumber, dob, address, city } = req.body;
+    const { name, gender, emailId, phoneNumber, age, address, city } = req.body;
 
     // Validate required fields
     if (
@@ -32,7 +32,7 @@ const addUser = async (req, res) => {
       !gender ||
       !emailId ||
       !phoneNumber ||
-      !dob ||
+      !age ||
       !address ||
       !city
     ) {
@@ -50,7 +50,7 @@ const addUser = async (req, res) => {
       role: "user",
       profile_details: {
         gender: gender,
-        dob: new Date(dob),
+        age: age,
         address: `${address}, ${city}`,
       },
       created_at: new Date().toISOString(),
@@ -67,8 +67,8 @@ const addUser = async (req, res) => {
     );
 
     const templateData = {
-      email: 'khanmdadil094@gmail.com',
-      phone: '9122672984',
+      email: emailId,
+      phone: phoneNumber,
       websiteLink: 'https://covid-19-tracker-fc5dd.web.app/client',
     };
     await sendTemplatedEmail([emailId], "AddUser", templateData);
@@ -371,12 +371,42 @@ const addClientHistory = async (req, res) => {
       sleep,
       concern,
       imageUrl,
-      importantNotes
+      importantNotes,
     } = req.body;
 
-    if (!userId) {
+    if (!userId && !name && !age && !dateOfIntake) {
       return res.status(400).json({
         message: "Invalid user ID.",
+      });
+    }
+
+    // Check if at least one set of fields is present
+    const hasFirstSet = [
+      familyCurrentSituation,
+      familyHistory,
+      presentingProblem,
+      pertinentHistory,
+      tentativeGoalsAndPlans,
+      observations,
+      specialNeeds,
+      diagnostic,
+      riskBehaviors,
+      appearance,
+      speech,
+      thoughtProcessContent,
+      appetite,
+      behavior,
+      orientation,
+      affect,
+      mood,
+      judgement,
+      sleep,
+      concern,
+    ].some((field) => field !== undefined && field !== null && field !== "");
+
+    if (!hasFirstSet && !imageUrl && !importantNotes) {
+      return res.status(400).json({
+        message: "No valid data provided to update client history.",
       });
     }
 
@@ -405,7 +435,7 @@ const addClientHistory = async (req, res) => {
       sleep,
       concern,
       imageUrl,
-      importantNotes
+      importantNotes,
     };
 
     const userCollection = await db.collection("users");
